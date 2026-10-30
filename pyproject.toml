@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=70", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "audio-para-texto"
+version = "1.0.1"
+description = "Transcrição local e gratuita de áudios do WhatsApp"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = {text = "MIT"}
+dependencies = [
+  "PySide6-Essentials>=6.7,<7",
+  "faster-whisper>=1.1,<2",
+  # PyAV 19 removed metadata_errors, which faster-whisper 1.x still passes.
+  "av>=11,<19",
+  "certifi>=2024.8.30",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pyinstaller>=6.10,<7",
+  "pytest>=8,<9",
+]
+
+[project.scripts]
+audio-para-texto = "audio_para_texto.app:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
