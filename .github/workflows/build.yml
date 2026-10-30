@@ -1,0 +1,56 @@
+name: Gerar aplicativos
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-14
+            artifact: Audio-para-Texto-macOS-arm64
+          - os: windows-latest
+            artifact: Audio-para-Texto-Windows-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Instalar dependências
+        run: python -m pip install .[dev]
+      - name: Executar testes
+        run: pytest
+      - name: Incluir modelo de voz offline
+        shell: bash
+        run: python -c "from faster_whisper.utils import download_model; download_model('base', output_dir='work/models/base')"
+      - name: Gerar aplicativo
+        run: pyinstaller --noconfirm AudioParaTexto.spec
+      - name: Criar DMG
+        if: runner.os == 'macOS'
+        run: hdiutil create -volname "Audio para Texto" -srcfolder "dist/Audio para Texto.app" -ov -format UDZO "dist/${{ matrix.artifact }}.dmg"
+      - name: Compactar Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path "dist/Audio para Texto/*" -DestinationPath "dist/${{ matrix.artifact }}.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            dist/*.dmg
+            dist/*.zip
+      - name: Publicar na Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.dmg
+            dist/*.zip
+
